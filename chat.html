@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FastAPI Chat</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #ece5dd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    #chat-container {
+      width: 420px;
+      height: 600px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    
+    #header {
+      background: #0084ff;
+      color: white;
+      padding: 14px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+   
+    #messages {
+      flex: 1;
+      padding: 15px;
+      background: #e5ddd5;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .msg {
+      max-width: 70%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      margin-bottom: 8px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      font-size: 15px;
+      position: relative;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .msg.you {
+      background: #dcf8c6;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.other {
+      background: #fff;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .timestamp {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+      text-align: right;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    
+    #input-bar {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: #f5f5f5;
+    }
+
+    #input-bar input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      outline: none;
+      font-size: 15px;
+      background: white;
+    }
+
+    #input-bar button {
+      margin-left: 8px;
+      background: #0084ff;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    #input-bar button:hover {
+      background: #0070e0;
+    }
+
+    
+    #login {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #e5ddd5;
+    }
+
+    #login input {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 10px;
+      width: 70%;
+      text-align: center;
+    }
+
+    #login button {
+      background: #0084ff;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #login button:hover {
+      background: #0070e0;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="header"> FastAPI Messenger</div>
+
+    <div id="login">
+      <input id="username" placeholder="Enter username" />
+      <button onclick="join()">Join Chat</button>
+    </div>
+
+    <div id="messages" style="display:none;"></div>
+
+    <div id="input-bar" style="display:none;">
+      <input id="msg" placeholder="Type a message..." onkeydown="if(event.key==='Enter') send()" />
+      <button onclick="send()">➤</button>
+    </div>
+  </div>
+
+  <script>
+    let ws;
+    let username;
+
+    function join() {
+      username = document.getElementById("username").value.trim();
+      if (!username) return alert("Please enter a username");
+
+      ws = new WebSocket("ws://localhost:8000/ws?username=" + encodeURIComponent(username));
+
+      ws.onopen = () => {
+        document.getElementById("login").style.display = "none";
+        document.getElementById("messages").style.display = "flex";
+        document.getElementById("input-bar").style.display = "flex";
+      };
+
+      ws.onmessage = (event) => addMessage(event.data);
+      ws.onclose = () => addMessage(" Disconnected from server");
+    }
+
+    function send() {
+      const input = document.getElementById("msg");
+      const text = input.value.trim();
+      if (!text) return;
+      ws.send(text);
+      input.value = "";
+    }
+
+    function addMessage(text) {
+      const msgBox = document.getElementById("messages");
+      const msg = document.createElement("div");
+      const isYou = text.startsWith(username + ":");
+
+      msg.classList.add("msg", isYou ? "you" : "other");
+      msg.textContent = text;
+
+      const time = document.createElement("div");
+      time.classList.add("timestamp");
+      time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      msg.appendChild(document.createElement("br"));
+      msg.appendChild(time);
+
+      msgBox.appendChild(msg);
+      msgBox.scrollTop = msgBox.scrollHeight;
+    }
+  </script>
+</body>
+</html>
